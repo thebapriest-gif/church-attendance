@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Church Attendance</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --gold: #C8A96E;
+    --gold-light: #F0E4CB;
+    --gold-pale: #FBF6EE;
+    --deep: #1C1A17;
+    --ink: #2E2B26;
+    --muted: #7A7468;
+    --border: #E4DDD1;
+    --white: #FFFDF9;
+    --green: #3A6B4A;
+    --green-light: #EAF2EC;
+    --red: #8B3A3A;
+    --red-light: #F5EAEA;
+    --amber: #8B6A1A;
+    --amber-light: #FBF3E0;
+    --amber-border: #D4A940;
+    --radius: 12px;
+    --shadow: 0 2px 16px rgba(28,26,23,0.08);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: #F5F0E8; color: var(--ink); min-height: 100vh; }
+
+  /* HEADER */
+  .app-header {
+    background: var(--deep);
+    padding: 18px 20px 14px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .app-header-left h1 { font-family: 'Lora', serif; font-size: 18px; color: var(--gold); font-weight: 600; }
+  .app-header-left p { font-size: 11px; color: rgba(255,255,255,0.45); margin-top: 1px; letter-spacing: 0.04em; }
+  .header-date { font-size: 11px; color: rgba(255,255,255,0.4); text-align: right; }
+
+  /* NAV */
+  .nav { display: flex; background: var(--white); border-bottom: 1px solid var(--border); overflow-x: auto; }
+  .nav-btn { flex: 1; min-width: 80px; padding: 13px 8px; border: none; background: transparent; font-family: 'DM Sans', sans-serif; font-size: 12px; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; white-space: nowrap; }
+  .nav-btn.active { color: var(--deep); border-bottom-color: var(--gold); font-weight: 500; }
+  .nav-btn:hover:not(.active) { color: var(--ink); background: var(--gold-pale); }
+
+  /* CONTENT */
+  .content { max-width: 600px; margin: 0 auto; padding: 20px 16px 100px; }
+  .section { display: none; }
+  .section.active { display: block; }
+
+  /* CARDS */
+  .card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; margin-bottom: 10px; }
+  .card-alert { background: var(--amber-light); border-color: var(--amber-border); }
+
+  /* STATS */
+  .stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 10px; margin-bottom: 18px; }
+  .stat { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 10px; text-align: center; }
+  .stat-num { font-family: 'Lora', serif; font-size: 26px; font-weight: 600; color: var(--deep); }
+  .stat-lbl { font-size: 11px; color: var(--muted); margin-top: 2px; letter-spacing: 0.03em; }
+
+  /* MEMBER ROW */
+  .mrow { display: flex; align-items: center; gap: 12px; }
+  .avatar { width: 38px; height: 38px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 500; flex-shrink: 0; font-family: 'Lora', serif; }
+  .av0 { background: #E8F0E8; color: #2D5A3D; }
+  .av1 { background: #E8EAF0; color: #2D3A6B; }
+  .av2 { background: #F0E8F0; color: #5A2D6B; }
+  .av3 { background: #F0EAE8; color: #6B3A2D; }
+  .av4 { background: #F0EEE8; color: #6B5A2D; }
+  .av5 { background: #E8F0EE; color: #2D6B5A; }
+  .mname { font-size: 14px; font-weight: 500; color: var(--deep); }
+  .msub { font-size: 11px; color: var(--muted); margin-top: 2px; display: flex; align-items: center; gap: 6px; }
+  .flex1 { flex: 1; min-width: 0; }
+
+  /* DOTS */
+  .dots { display: flex; gap: 4px; align-items: center; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; }
+  .dot-g { background: var(--green); }
+  .dot-r { background: #C0392B; }
+  .dot-e { background: var(--border); }
+
+  /* BUTTONS */
+  .btn { padding: 7px 14px; border-radius: 8px; border: 1px solid var(--border); background: transparent; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 12px; color: var(--muted); transition: all 0.15s; }
+  .btn:hover { background: var(--gold-pale); color: var(--ink); }
+  .btn-present { background: var(--green-light); color: var(--green); border-color: #A8C9B0; font-weight: 500; }
+  .btn-gold { background: var(--deep); color: var(--gold); border-color: var(--deep); font-weight: 500; font-size: 14px; padding: 12px 20px; width: 100%; border-radius: var(--radius); }
+  .btn-gold:hover { background: #2E2B26; }
+  .btn-sm { padding: 5px 10px; font-size: 11px; }
+  .btn-danger:hover { background: var(--red-light); color: var(--red); border-color: #C8A0A0; }
+
+  /* SECTION TITLE */
+  .sec-title { font-family: 'Lora', serif; font-size: 16px; font-weight: 600; color: var(--deep); margin-bottom: 14px; }
+  .sec-sub { font-size: 12px; color: var(--muted); margin-bottom: 14px; margin-top: -10px; }
+
+  /* FORMS */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+  .form-grid .full { grid-column: 1/-1; }
+  input, select, textarea {
+    width: 100%; padding: 9px 12px; border: 1px solid var(--border); border-radius: 8px;
+    font-family: 'DM Sans', sans-serif; font-size: 13px; background: var(--white); color: var(--ink);
+    outline: none; transition: border-color 0.15s;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--gold); }
+  label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 4px; }
+  .field { margin-bottom: 10px; }
+
+  /* ALERT ROW */
+  .alert-name { font-size: 14px; font-weight: 500; color: var(--amber); }
+  .alert-sub { font-size: 11px; color: #8B6A1A; margin-top: 2px; }
+  .reach-row { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; align-items: center; }
+  .assign-sel { padding: 5px 8px; font-size: 11px; border-radius: 8px; border: 1px solid var(--border); background: var(--white); color: var(--ink); cursor: pointer; }
+
+  /* TOAST */
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--deep); color: var(--gold); padding: 10px 20px; border-radius: 20px; font-size: 13px; font-weight: 500; z-index: 999; transition: transform 0.3s; pointer-events: none; }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+
+  /* MODAL */
+  .modal-bg { display: none; position: fixed; inset: 0; background: rgba(28,26,23,0.5); z-index: 200; align-items: center; justify-content: center; padding: 20px; }
+  .modal-bg.open { display: flex; }
+  .modal { background: var(--white); border-radius: var(--radius); border: 1px solid var(--border); padding: 20px; width: 100%; max-width: 440px; }
+  .modal-title { font-family: 'Lora', serif; font-size: 16px; font-weight: 600; color: var(--deep); margin-bottom: 3px; }
+  .modal-sub { font-size: 12px; color: var(--muted); margin-bottom: 12px; }
+  .modal textarea { min-height: 160px; resize: vertical; line-height: 1.6; }
+  .modal-row { display: flex; gap: 8px; justify-content: flex-end; margin-top: 12px; }
+
+  /* LOADING */
+  .loading { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 14px; }
+  .spinner { width: 28px; height: 28px; border: 2px solid var(--border); border-top-color: var(--gold); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 12px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* EMPTY */
+  .empty { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 13px; }
+  .empty-icon { font-size: 32px; margin-bottom: 10px; }
+
+  /* WEEK LABEL */
+  .week-label { font-size: 11px; color: var(--muted); margin-bottom: 14px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 4px; }
+
+  /* SETTINGS */
+  .settings-section { margin-bottom: 20px; }
+  .settings-card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; }
+  .settings-lbl { font-size: 12px; font-weight: 500; color: var(--deep); margin-bottom: 8px; }
+  .team-item { display: flex; align-items: center; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid var(--border); }
+  .team-item:last-child { border-bottom: none; }
+  .team-add { display: flex; gap: 8px; margin-top: 10px; }
+  .team-add input { flex: 1; }
+  .add-btn { padding: 8px 14px; background: var(--deep); color: var(--gold); border: none; border-radius: 8px; cursor: pointer; font-family: 'DM Sans', sans-serif; font-size: 13px; font-weight: 500; white-space: nowrap; }
+  .add-btn:hover { background: var(--ink); }
+  .hint { font-size: 11px; color: var(--muted); margin-top: 5px; }
+
+  /* SYNCING */
+  .sync-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); }
+  .sync-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); }
+  .sync-dot.syncing { background: var(--gold); animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <div class="app-header-left">
+    <h1 id="hdr-church">My Church</h1>
+    <p>Attendance & Follow-up</p>
+  </div>
+  <div class="header-date" id="hdr-date"></div>
+</div>
+
+<div class="nav">
+  <button class="nav-btn active" onclick="showTab('sunday',this)">&#9788; Roll Call</button>
+  <button class="nav-btn" onclick="showTab('followup',this)">&#9873; Follow-up</button>
+  <button class="nav-btn" onclick="showTab('members',this)">&#9786; Members</button>
+  <button class="nav-btn" onclick="showTab('settings',this)">&#9881; Settings</button>
+</div>
+
+<div class="content">
+
+  <!-- SUNDAY -->
+  <div id="sunday" class="section active">
+    <div id="sunday-loading" class="loading"><div class="spinner"></div>Loading members...</div>
+    <div id="sunday-body" style="display:none;">
+      <div class="stats">
+        <div class="stat"><div class="stat-num" id="s-present">0</div><div class="stat-lbl">Present</div></div>
+        <div class="stat"><div class="stat-num" id="s-absent">0</div><div class="stat-lbl">Absent</div></div>
+        <div class="stat"><div class="stat-num" id="s-total">0</div><div class="stat-lbl">Total</div></div>
+      </div>
+      <div class="week-label">
+        <span>Last 4 Sundays:</span>
+        <span class="legend-item"><span class="dot dot-g"></span> Present</span>
+        <span class="legend-item"><span class="dot dot-r"></span> Absent</span>
+        <span class="legend-item"><span class="dot dot-e"></span> No record</span>
+      </div>
+      <div id="roll-list"></div>
+      <div style="margin-top:14px;">
+        <button class="btn-gold" onclick="saveAttendance()">Save Sunday attendance</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FOLLOW-UP -->
+  <div id="followup" class="section">
+    <div class="sec-title">Follow-up Alerts</div>
+    <div class="sec-sub" id="followup-sub">Members not seen recently</div>
+    <div id="followup-loading" class="loading" style="display:none;"><div class="spinner"></div>Loading...</div>
+    <div id="followup-list"></div>
+  </div>
+
+  <!-- MEMBERS -->
+  <div id="members" class="section">
+    <div class="sec-title">Add a Member</div>
+    <div class="form-grid">
+      <div><label>First name</label><input id="m-fn" placeholder="e.g. Grace" /></div>
+      <div><label>Last name</label><input id="m-ln" placeholder="e.g. Thompson" /></div>
+      <div><label>Phone (optional)</label><input id="m-ph" placeholder="(902) 555-0000" /></div>
+      <div><label>Email (optional)</label><input id="m-em" placeholder="email@example.com" /></div>
+      <div class="full"><button class="btn-gold" onclick="addMember()">Add member to Google Sheet</button></div>
+    </div>
+    <div class="sec-title" style="margin-top:8px;">All Members <span id="member-count" style="font-family:'DM Sans';font-weight:300;font-size:13px;color:var(--muted);"></span></div>
+    <div id="members-loading" class="loading" style="display:none;"><div class="spinner"></div>Loading...</div>
+    <div id="all-members"></div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div id="settings" class="section">
+    <div class="sec-title">Settings</div>
+
+    <div class="settings-section">
+      <div class="settings-card">
+        <div class="settings-lbl">Church name</div>
+        <input id="set-church" placeholder="e.g. Grace Community Church" oninput="saveSetting('churchName',this.value);document.getElementById('hdr-church').textContent=this.value||'My Church'" />
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-card">
+        <div class="settings-lbl">Weeks before follow-up alert</div>
+        <select id="set-weeks" onchange="saveSetting('alertWeeks',parseInt(this.value))">
+          <option value="1">1 week absent</option>
+          <option value="2" selected>2 weeks absent</option>
+          <option value="3">3 weeks absent</option>
+          <option value="4">4 weeks absent</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-card">
+        <div class="settings-lbl">Follow-up team</div>
+        <div id="team-list"></div>
+        <div class="team-add">
+          <input id="new-team" placeholder="Team member name" />
+          <button class="add-btn" onclick="addTeamMember()">Add</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-card">
+        <div class="settings-lbl">Text message template</div>
+        <textarea id="set-sms" rows="3" oninput="saveSetting('smsTemplate',this.value)"></textarea>
+        <div class="hint">Use {name} for the member's first name, {church} for your church name</div>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-card">
+        <div class="settings-lbl">Email template</div>
+        <textarea id="set-email" rows="5" oninput="saveSetting('emailTemplate',this.value)"></textarea>
+        <div class="hint">Use {name} for the member's first name, {church} for your church name</div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- end content -->
+
+<!-- MODAL -->
+<div class="modal-bg" id="modal-bg">
+  <div class="modal">
+    <div class="modal-title" id="modal-title"></div>
+    <div class="modal-sub" id="modal-sub"></div>
+    <textarea id="modal-body"></textarea>
+    <div class="modal-row">
+      <button class="btn" onclick="closeModal()">Close</button>
+      <button class="btn" style="background:var(--deep);color:var(--gold);border-color:var(--deep);font-weight:500;" onclick="copyModal()">Copy message</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = 'https://script.google.com/macros/s/AKfycbzhpe5h8q758PzHzHlAvD9Fn9Nd98HUPBo7xe6Iz2Yyfe-1KXku89OpNM9I-xoA_XqEzA/exec';
+
+const DEFAULTS = {
+  churchName: 'My Church',
+  alertWeeks: 2,
+  team: ['Pastor', 'Deacon', 'Sister'],
+  smsTemplate: 'Hi {name}, we missed you at church this Sunday! We care about you and just wanted to check in. Please reach out if there is anything we can do for you. God bless! — {church}',
+  emailTemplate: 'Dear {name},\n\nWe noticed we haven\'t seen you at church recently and wanted to reach out to say we miss you and we are thinking of you.\n\nIf there is anything you need or if we can support you in any way, please don\'t hesitate to get in touch. Our doors are always open.\n\nWith love and prayers,\n{church}',
+};
+
+// Local settings only (not in sheet)
+function loadSettings() {
+  try { return JSON.parse(localStorage.getItem('church_att_settings') || '{}'); } catch(e) { return {}; }
+}
+function saveLocalSettings(s) {
+  try { localStorage.setItem('church_att_settings', JSON.stringify(s)); } catch(e) {}
+}
+let LS = loadSettings();
+function gs(k) { return LS[k] !== undefined ? LS[k] : DEFAULTS[k]; }
+function saveSetting(k, v) { LS[k] = v; saveLocalSettings(LS); }
+
+// State
+let members = [];
+let attendance = []; // [{memberId, date, present}]
+let todayPresent = {};
+let assignments = {};
+
+function todayStr() {
+  return new Date().toISOString().slice(0,10);
+}
+
+function displayDate() {
+  return new Date().toLocaleDateString('en-US', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+}
+
+function initials(m) { return ((m.first||'')[0]||'').toUpperCase() + ((m.last||'')[0]||'').toUpperCase(); }
+function avClass(id) { return 'av' + (((parseInt(id)||1)-1) % 6); }
+
+// API calls
+async function apiGet(action) {
+  const r = await fetch(`${API}?action=${action}`);
+  return r.json();
+}
+async function apiPost(data) {
+  const r = await fetch(API, {
+    method: 'POST',
+    body: JSON.stringify(data),
+  });
+  return r.json();
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// --- ATTENDANCE HISTORY ---
+function getHistory(memberId) {
+  // Get last sundays from attendance records
+  const recs = attendance
+    .filter(r => String(r.memberId) === String(memberId))
+    .sort((a,b) => a.date < b.date ? -1 : 1)
+    .slice(-4);
+  return recs;
+}
+
+function missedStreak(memberId) {
+  const recs = attendance
+    .filter(r => String(r.memberId) === String(memberId))
+    .sort((a,b) => a.date < b.date ? 1 : -1); // newest first
+  let streak = 0;
+  for (let r of recs) {
+    if (!r.present || r.present === 'FALSE' || r.present === false) streak++;
+    else break;
+  }
+  return streak;
+}
+
+// --- SUNDAY TAB ---
+async function loadSunday() {
+  document.getElementById('sunday-loading').style.display = 'block';
+  document.getElementById('sunday-body').style.display = 'none';
+  try {
+    const [mRes, aRes] = await Promise.all([apiGet('getMembers'), apiGet('getAttendance')]);
+    members = mRes.members || [];
+    attendance = aRes.records || [];
+    renderSunday();
+    document.getElementById('sunday-loading').style.display = 'none';
+    document.getElementById('sunday-body').style.display = 'block';
+  } catch(e) {
+    document.getElementById('sunday-loading').innerHTML = '<div style="text-align:center;padding:30px;color:#8B3A3A;">Could not connect to Google Sheet. Check your internet connection.</div>';
+  }
+}
+
+function renderSunday() {
+  const pc = Object.values(todayPresent).filter(Boolean).length;
+  document.getElementById('s-present').textContent = pc;
+  document.getElementById('s-absent').textContent = members.length - pc;
+  document.getElementById('s-total').textContent = members.length;
+
+  document.getElementById('roll-list').innerHTML = members.map(m => {
+    const hist = getHistory(m.id);
+    const dots = [0,1,2,3].map(i => {
+      const rec = hist[i];
+      if (!rec) return `<span class="dot dot-e"></span>`;
+      const p = rec.present === true || rec.present === 'TRUE';
+      return `<span class="dot ${p ? 'dot-g' : 'dot-r'}"></span>`;
+    }).join('');
+    const pres = !!todayPresent[m.id];
+    return `<div class="card">
+      <div class="mrow">
+        <div class="avatar ${avClass(m.id)}">${initials(m)}</div>
+        <div class="flex1">
+          <div class="mname">${m.first} ${m.last}</div>
+          <div class="msub"><span class="dots">${dots}</span><span>${hist.length} recorded Sunday${hist.length!==1?'s':''}</span></div>
+        </div>
+        <button class="btn ${pres ? 'btn-present' : ''}" onclick="toggleP('${m.id}')">${pres ? '&#10003; Present' : 'Mark present'}</button>
+      </div>
+    </div>`;
+  }).join('') || '<div class="empty"><div class="empty-icon">&#9786;</div>No members yet. Add members in the Members tab.</div>';
+}
+
+function toggleP(id) {
+  todayPresent[id] = !todayPresent[id];
+  renderSunday();
+}
+
+async function saveAttendance() {
+  const today = todayStr();
+  const records = members.map(m => ({
+    memberId: m.id,
+    date: today,
+    present: !!todayPresent[m.id]
+  }));
+  showToast('Saving attendance...');
+  try {
+    await apiPost({ action: 'saveAttendance', records });
+    // update local attendance
+    records.forEach(rec => {
+      const idx = attendance.findIndex(r => String(r.memberId) === String(rec.memberId) && r.date === rec.date);
+      if (idx > -1) attendance[idx] = rec;
+      else attendance.push(rec);
+    });
+    todayPresent = {};
+    renderSunday();
+    renderFollowup();
+    showToast('Attendance saved to Google Sheet!');
+  } catch(e) {
+    showToast('Error saving. Please try again.');
+  }
+}
+
+// --- FOLLOW-UP TAB ---
+function renderFollowup() {
+  const weeks = gs('alertWeeks');
+  const teamOpts = gs('team').map(t => `<option value="${t}">${t}</option>`).join('');
+  const flagged = members.filter(m => missedStreak(m.id) >= weeks);
+
+  document.getElementById('followup-sub').textContent = `Members absent for ${weeks}+ week${weeks>1?'s':''} in a row`;
+
+  if (!flagged.length) {
+    document.getElementById('followup-list').innerHTML = `<div class="empty"><div class="empty-icon">&#10003;</div>No members flagged right now.<br>Everyone has been attending regularly!</div>`;
+    return;
+  }
+
+  document.getElementById('followup-list').innerHTML = flagged.map(m => {
+    const streak = missedStreak(m.id);
+    const assigned = assignments[m.id] || '';
+    return `<div class="card card-alert">
+      <div class="mrow">
+        <div class="avatar ${avClass(m.id)}" style="background:#F0E4CB;color:#8B6A1A;">${initials(m)}</div>
+        <div class="flex1">
+          <div class="alert-name">${m.first} ${m.last}</div>
+          <div class="alert-sub">Absent ${streak} week${streak!==1?'s':''} in a row &nbsp;&middot;&nbsp; ${m.phone || m.email || 'No contact info'}</div>
+        </div>
+      </div>
+      <div class="reach-row" style="margin-top:10px;">
+        <span style="font-size:11px;color:var(--amber);font-weight:500;">Assign&nbsp;to:</span>
+        <select class="assign-sel" onchange="assignMember('${m.id}',this.value)">
+          <option value="">— unassigned —</option>
+          ${teamOpts}
+        </select>
+        ${assigned ? `<span style="font-size:11px;color:var(--green);font-weight:500;">&#10003; ${assigned}</span>` : ''}
+      </div>
+      <div class="reach-row">
+        ${m.phone ? `<button class="btn btn-sm" onclick="openMsg('sms','${m.id}')">&#128172; Draft text message</button>` : ''}
+        ${m.email ? `<button class="btn btn-sm" onclick="openMsg('email','${m.id}')">&#9993; Draft email</button>` : ''}
+        ${!m.phone && !m.email ? `<span style="font-size:11px;color:var(--amber);">No contact info — consider a home visit</span>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+
+  // restore assignments
+  flagged.forEach(m => {
+    const sel = document.querySelector(`[onchange="assignMember('${m.id}',this.value)"]`);
+    if (sel && assignments[m.id]) sel.value = assignments[m.id];
+  });
+}
+
+function assignMember(id, val) {
+  assignments[id] = val;
+  renderFollowup();
+}
+
+function openMsg(type, id) {
+  const m = members.find(x => String(x.id) === String(id));
+  const church = gs('churchName') || 'My Church';
+  let body = '';
+  if (type === 'sms') {
+    body = gs('smsTemplate').replace(/{name}/g, m.first).replace(/{church}/g, church);
+    document.getElementById('modal-title').textContent = `Text message for ${m.first} ${m.last}`;
+    document.getElementById('modal-sub').textContent = m.phone ? `Send to: ${m.phone}` : 'No phone number on file';
+  } else {
+    body = gs('emailTemplate').replace(/{name}/g, m.first).replace(/{church}/g, church);
+    document.getElementById('modal-title').textContent = `Email for ${m.first} ${m.last}`;
+    document.getElementById('modal-sub').textContent = m.email ? `Send to: ${m.email}` : 'No email on file';
+  }
+  document.getElementById('modal-body').value = body;
+  document.getElementById('modal-bg').classList.add('open');
+}
+
+function closeModal() { document.getElementById('modal-bg').classList.remove('open'); }
+function copyModal() {
+  const ta = document.getElementById('modal-body');
+  ta.select();
+  try { document.execCommand('copy'); } catch(e) {}
+  showToast('Message copied to clipboard!');
+  closeModal();
+}
+
+// --- MEMBERS TAB ---
+async function loadMembers() {
+  document.getElementById('members-loading').style.display = 'block';
+  document.getElementById('all-members').innerHTML = '';
+  try {
+    const res = await apiGet('getMembers');
+    members = res.members || [];
+    renderAllMembers();
+    document.getElementById('members-loading').style.display = 'none';
+  } catch(e) {
+    document.getElementById('members-loading').innerHTML = '<div style="color:#8B3A3A;font-size:13px;padding:10px;">Could not load members.</div>';
+  }
+}
+
+function renderAllMembers() {
+  document.getElementById('member-count').textContent = `(${members.length})`;
+  document.getElementById('all-members').innerHTML = members.map(m => `
+    <div class="card">
+      <div class="mrow">
+        <div class="avatar ${avClass(m.id)}">${initials(m)}</div>
+        <div class="flex1">
+          <div class="mname">${m.first} ${m.last}</div>
+          <div class="msub">${m.phone || 'No phone'} &nbsp;&middot;&nbsp; ${m.email || 'No email'}</div>
+        </div>
+        <button class="btn btn-sm btn-danger" onclick="deleteMember('${m.id}','${m.first} ${m.last}')">Remove</button>
+      </div>
+    </div>
+  `).join('') || '<div class="empty">No members yet.</div>';
+}
+
+async function addMember() {
+  const fn = document.getElementById('m-fn').value.trim();
+  const ln = document.getElementById('m-ln').value.trim();
+  if (!fn || !ln) { showToast('Please enter first and last name.'); return; }
+  showToast('Adding member...');
+  try {
+    const res = await apiPost({ action: 'addMember', member: {
+      first: fn, last: ln,
+      phone: document.getElementById('m-ph').value.trim(),
+      email: document.getElementById('m-em').value.trim()
+    }});
+    if (res.success) {
+      ['m-fn','m-ln','m-ph','m-em'].forEach(x => document.getElementById(x).value = '');
+      await loadMembers();
+      showToast('Member added to Google Sheet!');
+    }
+  } catch(e) { showToast('Error adding member.'); }
+}
+
+async function deleteMember(id, name) {
+  if (!confirm(`Remove ${name} from the church list?`)) return;
+  showToast('Removing...');
+  try {
+    await apiPost({ action: 'deleteMember', id });
+    await loadMembers();
+    showToast('Member removed.');
+  } catch(e) { showToast('Error removing member.'); }
+}
+
+// --- SETTINGS TAB ---
+function renderSettings() {
+  document.getElementById('set-church').value = gs('churchName');
+  document.getElementById('set-weeks').value = gs('alertWeeks');
+  document.getElementById('set-sms').value = gs('smsTemplate');
+  document.getElementById('set-email').value = gs('emailTemplate');
+  document.getElementById('hdr-church').textContent = gs('churchName') || 'My Church';
+  renderTeam();
+}
+
+function renderTeam() {
+  const team = gs('team');
+  document.getElementById('team-list').innerHTML = team.length ? team.map((t,i) => `
+    <div class="team-item">
+      <span style="font-size:13px;">${t}</span>
+      <button class="btn btn-sm btn-danger" onclick="removeTeam(${i})">Remove</button>
+    </div>
+  `).join('') : '<div style="font-size:12px;color:var(--muted);padding:8px 0;">No team members yet.</div>';
+}
+
+function addTeamMember() {
+  const v = document.getElementById('new-team').value.trim();
+  if (!v) return;
+  const team = gs('team');
+  if (!team.includes(v)) { team.push(v); saveSetting('team', team); }
+  document.getElementById('new-team').value = '';
+  renderTeam();
+}
+
+function removeTeam(i) {
+  const team = gs('team');
+  team.splice(i, 1);
+  saveSetting('team', team);
+  renderTeam();
+}
+
+// --- TABS ---
+function showTab(id, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+  if (id === 'followup') renderFollowup();
+  if (id === 'members') loadMembers();
+  if (id === 'settings') renderSettings();
+}
+
+// --- INIT ---
+document.getElementById('hdr-date').textContent = displayDate();
+document.getElementById('hdr-church').textContent = gs('churchName') || 'My Church';
+loadSunday();
+</script>
+</body>
+</html>
