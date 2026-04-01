@@ -227,14 +227,14 @@
     <div class="settings-section">
       <div class="settings-card">
         <div class="settings-lbl">Church name</div>
-        <input id="set-church" placeholder="e.g. Grace Community Church" oninput="saveSetting('churchName',this.value);document.getElementById('hdr-church').textContent=this.value||'My Church'" />
+        <input id="set-church" placeholder="e.g. Grace Community Church" />
       </div>
     </div>
 
     <div class="settings-section">
       <div class="settings-card">
         <div class="settings-lbl">Weeks before follow-up alert</div>
-        <select id="set-weeks" onchange="saveSetting('alertWeeks',parseInt(this.value))">
+        <select id="set-weeks">
           <option value="1">1 week absent</option>
           <option value="2" selected>2 weeks absent</option>
           <option value="3">3 weeks absent</option>
@@ -257,7 +257,7 @@
     <div class="settings-section">
       <div class="settings-card">
         <div class="settings-lbl">Text message template</div>
-        <textarea id="set-sms" rows="3" oninput="saveSetting('smsTemplate',this.value)"></textarea>
+        <textarea id="set-sms" rows="3"></textarea>
         <div class="hint">Use {name} for the member's first name, {church} for your church name</div>
       </div>
     </div>
@@ -265,9 +265,13 @@
     <div class="settings-section">
       <div class="settings-card">
         <div class="settings-lbl">Email template</div>
-        <textarea id="set-email" rows="5" oninput="saveSetting('emailTemplate',this.value)"></textarea>
+        <textarea id="set-email" rows="5"></textarea>
         <div class="hint">Use {name} for the member's first name, {church} for your church name</div>
       </div>
+    </div>
+
+    <div class="settings-section">
+      <button class="btn-gold" onclick="saveAllSettings()">Save settings</button>
     </div>
   </div>
 
@@ -289,7 +293,7 @@
 <div class="toast" id="toast"></div>
 
 <script>
-const API = 'https://script.google.com/macros/s/AKfycbzhpe5h8q758PzHzHlAvD9Fn9Nd98HUPBo7xe6Iz2Yyfe-1KXku89OpNM9I-xoA_XqEzA/exec';
+const API = 'https://script.google.com/macros/s/AKfycbz5qE8Ap0iqRm_bjUzSNbDgCoETpLOGkP66NwoEmhvoT4dPbfOUJbgZZGhl5TtOcOvZOg/exec';
 
 const DEFAULTS = {
   churchName: 'My Church',
@@ -299,16 +303,30 @@ const DEFAULTS = {
   emailTemplate: 'Dear {name},\n\nWe noticed we haven\'t seen you at church recently and wanted to reach out to say we miss you and we are thinking of you.\n\nIf there is anything you need or if we can support you in any way, please don\'t hesitate to get in touch. Our doors are always open.\n\nWith love and prayers,\n{church}',
 };
 
-// Local settings only (not in sheet)
-function loadSettings() {
-  try { return JSON.parse(localStorage.getItem('church_att_settings') || '{}'); } catch(e) { return {}; }
-}
-function saveLocalSettings(s) {
-  try { localStorage.setItem('church_att_settings', JSON.stringify(s)); } catch(e) {}
-}
-let LS = loadSettings();
+// Settings synced from Google Sheet
+let LS = {};
+
 function gs(k) { return LS[k] !== undefined ? LS[k] : DEFAULTS[k]; }
-function saveSetting(k, v) { LS[k] = v; saveLocalSettings(LS); }
+
+function saveSetting(k, v) {
+  LS[k] = v;
+  // Save to Google Sheet in background
+  apiPost({ action: 'saveSettings', settings: { [k]: typeof v === 'object' ? JSON.stringify(v) : v } })
+    .catch(() => {});
+}
+
+async function loadSettingsFromSheet() {
+  try {
+    const res = await apiGet('getSettings');
+    const raw = res.settings || {};
+    LS = {};
+    Object.keys(raw).forEach(k => {
+      try { LS[k] = JSON.parse(raw[k]); } catch(e) { LS[k] = raw[k]; }
+    });
+    // Update header immediately after loading
+    document.getElementById('hdr-church').textContent = gs('churchName') || 'My Church';
+  } catch(e) {}
+}
 
 // State
 let members = [];
@@ -590,6 +608,27 @@ function renderSettings() {
   renderTeam();
 }
 
+function saveAllSettings() {
+  const churchName = document.getElementById('set-church').value;
+  const alertWeeks = parseInt(document.getElementById('set-weeks').value);
+  const smsTemplate = document.getElementById('set-sms').value;
+  const emailTemplate = document.getElementById('set-email').value;
+  LS.churchName = churchName;
+  LS.alertWeeks = alertWeeks;
+  LS.smsTemplate = smsTemplate;
+  LS.emailTemplate = emailTemplate;
+  document.getElementById('hdr-church').textContent = churchName || 'My Church';
+  showToast('Saving settings...');
+  apiPost({ action: 'saveSettings', settings: {
+    churchName,
+    alertWeeks,
+    smsTemplate,
+    emailTemplate,
+    team: JSON.stringify(gs('team'))
+  }}).then(() => showToast('Settings saved to Google Sheet!'))
+    .catch(() => showToast('Error saving settings.'));
+}
+
 function renderTeam() {
   const team = gs('team');
   document.getElementById('team-list').innerHTML = team.length ? team.map((t,i) => `
@@ -604,7 +643,13 @@ function addTeamMember() {
   const v = document.getElementById('new-team').value.trim();
   if (!v) return;
   const team = gs('team');
-  if (!team.includes(v)) { team.push(v); saveSetting('team', team); }
+  if (!team.includes(v)) {
+    team.push(v);
+    LS.team = team;
+    apiPost({ action: 'saveSettings', settings: { team: JSON.stringify(team) } })
+      .then(() => showToast('Team updated!'))
+      .catch(() => {});
+  }
   document.getElementById('new-team').value = '';
   renderTeam();
 }
@@ -612,7 +657,10 @@ function addTeamMember() {
 function removeTeam(i) {
   const team = gs('team');
   team.splice(i, 1);
-  saveSetting('team', team);
+  LS.team = team;
+  apiPost({ action: 'saveSettings', settings: { team: JSON.stringify(team) } })
+    .then(() => showToast('Team updated!'))
+    .catch(() => {});
   renderTeam();
 }
 
@@ -629,8 +677,11 @@ function showTab(id, btn) {
 
 // --- INIT ---
 document.getElementById('hdr-date').textContent = displayDate();
-document.getElementById('hdr-church').textContent = gs('churchName') || 'My Church';
-loadSunday();
+document.getElementById('hdr-church').textContent = 'Loading...';
+loadSettingsFromSheet().then(() => {
+  renderSettings();
+  loadSunday();
+});
 </script>
 </body>
 </html>
