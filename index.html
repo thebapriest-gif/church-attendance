@@ -705,8 +705,15 @@ async function loadMembers(){
 
 function renderAllMembers(){
   const q=(document.getElementById('member-search')||{}).value||'';
-  const query=q.toLowerCase();
-  const filtered=query?members.filter(m=>`${m.first} ${m.last}`.toLowerCase().includes(query)||(m.phone||'').includes(query)||(m.email||'').toLowerCase().includes(query)):members;
+  const query=q.toLowerCase().trim();
+  const filtered=!query?members:members.filter(m=>{
+    const fullName=((m.first||'')+' '+(m.last||'')).toLowerCase();
+    const firstName=(m.first||'').toLowerCase();
+    const lastName=(m.last||'').toLowerCase();
+    const phone=(m.phone||'').toLowerCase();
+    const email=(m.email||'').toLowerCase();
+    return fullName.includes(query)||firstName.includes(query)||lastName.includes(query)||phone.includes(query)||email.includes(query);
+  });
   document.getElementById('member-count').textContent=members.length;
   const pastoral=filtered.filter(m=>m.pastoralFlag&&m.pastoralFlag!=='false'&&m.pastoralFlag!==false);
   const regular=filtered.filter(m=>!m.pastoralFlag||m.pastoralFlag==='false'||m.pastoralFlag===false);
