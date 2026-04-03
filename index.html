@@ -38,6 +38,16 @@ body{font-family:'Open Sans',sans-serif;background:#F0F2F5;color:var(--ink);min-
 .app-header{background:var(--navy);padding:0 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;min-height:64px;}
 .hdr-left{display:flex;align-items:center;gap:12px;}
 .hdr-logo img{height:36px;object-fit:contain;}
+.hdr-logo-full{display:block;}
+.hdr-logo-flame{display:none;}
+@media(max-width:520px){
+  .hdr-logo-full{display:none;}
+  .hdr-logo-flame{display:block;height:32px;}
+  .hdr-title{font-size:15px;}
+  .hdr-subtitle{font-size:9px;}
+  .user-name{display:none;}
+  .user-pill{padding:5px 7px;}
+}
 .hdr-title{font-family:'Montserrat',sans-serif;font-size:20px;font-weight:700;color:var(--white);line-height:1.1;letter-spacing:0.01em;}
 .hdr-subtitle{font-size:10px;color:rgba(255,255,255,0.45);margin-top:1px;letter-spacing:0.06em;text-transform:uppercase;}
 .hdr-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
@@ -207,9 +217,9 @@ label{font-size:11px;color:var(--muted);display:block;margin-bottom:4px;font-wei
 <div class="login-wrap" id="login-wrap">
   <div class="login-box">
     <div class="login-logo-wrap">
-      <img src="https://images.squarespace-cdn.com/content/v1/618fd8194478fc2e7b8aa8b5/13a5579a-6c9f-4092-b52c-864eed51e365/catch-the-fire_primary_standard-colour_RGB.png?format=400w" alt="Catch The Fire" onerror="this.style.display='none'" />
+      <img src="https://images.squarespace-cdn.com/content/v1/618fd8194478fc2e7b8aa8b5/13a5579a-6c9f-4092-b52c-864eed51e365/catch-the-fire_primary_standard-colour_RGB.png?format=400w" alt="Catch The Fire" onerror="this.style.display='none'" style="height:48px;"/>
     </div>
-    <div class="login-church">Catch The Fire Halifax</div>
+    <div class="login-church">Halifax</div>
     <div class="login-sub">Care Team Portal</div>
     <div class="login-field"><label>Username</label><input type="text" id="login-user" placeholder="Enter your username" autocomplete="username"/></div>
     <div class="login-field"><label>Password</label><input type="password" id="login-pass" placeholder="Enter your password" autocomplete="current-password"/></div>
@@ -223,7 +233,12 @@ label{font-size:11px;color:var(--muted);display:block;margin-bottom:4px;font-wei
   <div class="app-header">
     <div class="hdr-left">
       <div class="hdr-logo">
-        <img src="https://images.squarespace-cdn.com/content/v1/618fd8194478fc2e7b8aa8b5/f4fc2f70-8b66-4483-934a-37c1018c0b40/catch-the-fire_primary_inverted-colour_RGB.png?format=300w" alt="CTF" onerror="this.style.display='none'"/>
+        <img class="hdr-logo-full" src="https://images.squarespace-cdn.com/content/v1/618fd8194478fc2e7b8aa8b5/f4fc2f70-8b66-4483-934a-37c1018c0b40/catch-the-fire_primary_inverted-colour_RGB.png?format=300w" alt="Catch The Fire" onerror="this.style.display='none'"/>
+        <svg class="hdr-logo-flame" viewBox="0 0 40 52" fill="none" xmlns="http://www.w3.org/2000/svg" height="32">
+          <path d="M20 2C20 2 8 14 8 26C8 33.7 13.3 40 20 40C26.7 40 32 33.7 32 26C32 14 20 2 20 2Z" fill="#E8450A"/>
+          <path d="M20 14C20 14 13 22 13 28C13 32.4 16.1 36 20 36C23.9 36 27 32.4 27 28C27 22 20 14 20 14Z" fill="#FF6B35"/>
+          <path d="M20 22C20 22 16 26 16 29.5C16 31.9 17.8 34 20 34C22.2 34 24 31.9 24 29.5C24 26 20 22 20 22Z" fill="#FFF0EB"/>
+        </svg>
       </div>
       <div>
         <div class="hdr-title">Catch The Fire Halifax</div>
