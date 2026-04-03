@@ -242,7 +242,7 @@ label{font-size:11px;color:var(--muted);display:block;margin-bottom:4px;font-wei
       </div>
       <div>
         <div class="hdr-title">Catch The Fire Halifax</div>
-        <div class="hdr-subtitle">Care Team &middot; Attendance</div>
+        <div class="hdr-subtitle" id="hdr-subtitle">Care Team &middot; Attendance</div>
       </div>
     </div>
     <div class="hdr-right">
@@ -250,13 +250,18 @@ label{font-size:11px;color:var(--muted);display:block;margin-bottom:4px;font-wei
       <button class="logout-btn" onclick="doLogout()">Sign out</button>
     </div>
   </div>
-  <div class="nav">
+  <div class="nav" id="main-nav">
     <button class="nav-btn active" onclick="showTab('sunday',this)">&#9788; Roll Call</button>
     <button class="nav-btn" onclick="showTab('followup',this)">&#9873; Follow-up</button>
     <button class="nav-btn" onclick="showTab('members',this)">&#9786; Members</button>
     <button class="nav-btn" onclick="showTab('stats',this)">&#9783; Stats</button>
     <button class="nav-btn" onclick="showTab('activity',this)">&#128203; Activity</button>
     <button class="nav-btn" onclick="showTab('settings',this)">&#9881; Settings</button>
+  </div>
+  <div class="nav" id="pastor-nav" style="display:none;">
+    <button class="nav-btn active" onclick="showTab('pastoral',this)">&#128591; Pastoral Care</button>
+    <button class="nav-btn" onclick="showTab('pastor-attendance',this)">&#128203; Attendance</button>
+    <button class="nav-btn" onclick="showTab('stats',this)">&#9783; Stats</button>
   </div>
   <div class="content">
 
@@ -333,6 +338,29 @@ label{font-size:11px;color:var(--muted);display:block;margin-bottom:4px;font-wei
       </div>
     </div>
 
+    <!-- PASTORAL CARE (pastor only) -->
+    <div id="pastoral" class="section">
+      <div class="sec-title">&#128591; Pastoral Care</div>
+      <div class="sec-sub">Members flagged for pastoral attention</div>
+      <div id="pastoral-loading" class="loading" style="display:none;"><div class="spinner"></div>Loading...</div>
+      <div id="pastoral-list"></div>
+    </div>
+
+    <!-- PASTOR ATTENDANCE (read only) -->
+    <div id="pastor-attendance" class="section">
+      <div class="sec-title">&#128203; Sunday Attendance</div>
+      <div class="sec-sub">Read-only view of congregation attendance</div>
+      <div id="pastor-att-loading" class="loading"><div class="spinner"></div>Loading...</div>
+      <div id="pastor-att-body" style="display:none;">
+        <div class="stats">
+          <div class="stat"><div class="stat-num" id="pa-total">0</div><div class="stat-lbl">Members</div></div>
+          <div class="stat"><div class="stat-num" id="pa-sundays">0</div><div class="stat-lbl">Sundays Recorded</div></div>
+          <div class="stat"><div class="stat-num" id="pa-avg">0</div><div class="stat-lbl">Avg Present</div></div>
+        </div>
+        <div id="pastor-sunday-list"></div>
+      </div>
+    </div>
+
     <!-- STATS -->
     <div id="stats" class="section">
       <div class="sec-title">Year Statistics</div>
@@ -399,7 +427,7 @@ label{font-size:11px;color:var(--muted);display:block;margin-bottom:4px;font-wei
         <div class="sec-title">Team Logins <span class="admin-badge">Admin only</span></div>
         <div class="settings-card">
           <div class="settings-lbl">How to manage users</div>
-          <div style="font-size:12px;color:var(--muted);line-height:1.8;">Open your Google Sheet and go to the <strong>Users</strong> tab.<br>Each row is one team member. Columns are:<br><strong>Username &nbsp;|&nbsp; Password &nbsp;|&nbsp; DisplayName &nbsp;|&nbsp; Role</strong><br>Role can be <strong>admin</strong> or <strong>member</strong>.<br><br>Default login: username <strong>admin</strong> / password <strong>ctfhalifax2024</strong><br>Change this immediately after first login!</div>
+          <div style="font-size:12px;color:var(--muted);line-height:1.8;">Open your Google Sheet and go to the <strong>Users</strong> tab.<br>Each row is one team member. Columns are:<br><strong>Username &nbsp;|&nbsp; Password &nbsp;|&nbsp; DisplayName &nbsp;|&nbsp; Role</strong><br>Role can be <strong>admin</strong>, <strong>member</strong>, or <strong>pastor</strong>.<br>The <strong>pastor</strong> role gives access to Pastoral Care, Attendance and Stats only.<br><br>Default login: username <strong>admin</strong> / password <strong>ctfhalifax2024</strong><br>Change this immediately after first login!</div>
         </div>
       </div>
     </div>
@@ -483,10 +511,27 @@ label{font-size:11px;color:var(--muted);display:block;margin-bottom:4px;font-wei
   </div>
 </div>
 
+<!-- PASTORAL NOTE MODAL -->
+<div class="modal-bg" id="pastoral-note-modal">
+  <div class="modal">
+    <div class="modal-title">Add Pastoral Note</div>
+    <div class="modal-sub" id="pastoral-note-sub"></div>
+    <input type="hidden" id="pastoral-note-id"/>
+    <div class="modal-field">
+      <label>Note (visible to whole care team)</label>
+      <textarea id="pastoral-note-text" rows="4" placeholder="Enter your pastoral notes here..."></textarea>
+    </div>
+    <div class="modal-row">
+      <button class="btn" onclick="closeModal('pastoral-note-modal')">Cancel</button>
+      <button class="btn-fire" style="width:auto;padding:9px 18px;font-size:13px;" onclick="savePastoralNote()">Save Note</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
-const API='https://script.google.com/macros/s/AKfycbzWFdZUia2Gh5LAOq2FnIh2bGSFva8dekm8HdjFhN2SF00q-4fSyVbUy1wfn8ng249xeg/exec';
+const API='https://script.google.com/macros/s/AKfycbzzwxQGQ8VxZxlzz2kIzzBjZkDm445RPlMT7gUTIjqjeKa7_qA7KglK9I3aacsbS-wgDQ/exec';
 const CHURCH='Catch The Fire Halifax';
 const DEFAULTS={alertWeeks:2,team:[],smsTemplate:'Hi {name}, we missed you at church this Sunday! We care about you and just wanted to check in. Please reach out if there is anything we can do for you. God bless! — {church}',emailTemplate:'Dear {name},\n\nWe noticed we haven\'t seen you at church recently and wanted to reach out to say we miss you and we are thinking of you.\n\nIf there is anything you need or if we can support you in any way, please don\'t hesitate to get in touch. Our doors are always open.\n\nWith love and prayers,\n{church}'};
 
@@ -520,8 +565,22 @@ function showApp(){
   document.getElementById('login-wrap').style.display='none';
   document.getElementById('app-wrap').style.display='block';
   document.getElementById('hdr-user').textContent=currentUser.displayName||currentUser.username;
-  if(currentUser.role==='admin'){document.getElementById('user-mgmt-section').style.display='block';document.getElementById('unlock-btn').style.display='inline-block';}
-  loadSettingsFromSheet().then(()=>{renderSettings();loadSunday();});
+  if(currentUser.role==='pastor'){
+    // Pastor view — show only pastor nav and pastoral tab
+    document.getElementById('main-nav').style.display='none';
+    document.getElementById('pastor-nav').style.display='flex';
+    document.getElementById('hdr-subtitle').textContent='Pastor\'s View';
+    // Hide all sections, show pastoral
+    document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+    document.getElementById('pastoral').classList.add('active');
+    loadSettingsFromSheet().then(()=>{ loadPastoralMembers(); loadPastorAttendance(); });
+  } else {
+    // Care team / admin view
+    document.getElementById('main-nav').style.display='flex';
+    document.getElementById('pastor-nav').style.display='none';
+    if(currentUser.role==='admin'){document.getElementById('user-mgmt-section').style.display='block';document.getElementById('unlock-btn').style.display='inline-block';}
+    loadSettingsFromSheet().then(()=>{renderSettings();loadSunday();});
+  }
 }
 document.getElementById('login-pass').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
 document.getElementById('login-user').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
@@ -856,8 +915,123 @@ function renderTeam(){const team=gs('team')||[];document.getElementById('team-li
 function addTeamMember(){const v=document.getElementById('new-team').value.trim();if(!v)return;const team=gs('team')||[];if(!team.includes(v)){team.push(v);LS.team=team;apiPost({action:'saveSettings',settings:{team:JSON.stringify(team)}}).then(()=>showToast('Team updated!')).catch(()=>{});}document.getElementById('new-team').value='';renderTeam();}
 function removeTeam(i){const team=gs('team')||[];team.splice(i,1);LS.team=team;apiPost({action:'saveSettings',settings:{team:JSON.stringify(team)}}).then(()=>showToast('Team updated!')).catch(()=>{});renderTeam();}
 
+// PASTORAL CARE (pastor view)
+async function loadPastoralMembers(){
+  document.getElementById('pastoral-loading').style.display='block';
+  document.getElementById('pastoral-list').innerHTML='';
+  try{
+    const[res,fuRes]=await Promise.all([apiGet('getPastoralMembers'),apiGet('getFollowups')]);
+    const pMembers=res.members||[];
+    followups=fuRes.followups||[];
+    document.getElementById('pastoral-loading').style.display='none';
+    if(!pMembers.length){
+      document.getElementById('pastoral-list').innerHTML='<div class="empty">&#10003; No members flagged for pastoral care right now.</div>';
+      return;
+    }
+    document.getElementById('pastoral-list').innerHTML=pMembers.map(m=>{
+      const history=(m.followupHistory||[]).slice(-5).reverse();
+      return`<div class="card card-pastoral" style="margin-bottom:14px;">
+        <div class="mrow" style="margin-bottom:12px;">
+          <div class="avatar ${avClass(m.id)}" style="background:#F3E8FF;color:#7C3AED;">${initials(m)}</div>
+          <div class="flex1">
+            <div class="mname">${m.first} ${m.last}</div>
+            <div class="msub">${m.phone||'No phone'} &nbsp;&middot;&nbsp; ${m.email||'No email'}</div>
+            <div style="font-size:11px;color:#7C3AED;margin-top:3px;font-weight:600;">Absent ${m.absentWeeks} week${m.absentWeeks!==1?'s':''} in a row</div>
+          </div>
+        </div>
+        ${m.notes?`<div style="background:#F3E8FF;border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:12px;color:#5B21B6;"><strong>Notes:</strong> ${m.notes}</div>`:''}
+        ${history.length?`
+          <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">Follow-up History</div>
+          ${history.map(h=>`<div style="background:var(--off);border-radius:8px;padding:8px 10px;margin-bottom:6px;font-size:12px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:4px;">
+              <span class="outcome-badge ${getOutcomeClass(h.outcome)}">${h.outcome||'No outcome'}</span>
+              <span style="font-size:10px;color:var(--muted);">${h.date} &middot; ${h.contactedBy}</span>
+            </div>
+            ${h.method?`<div style="font-size:11px;color:var(--muted);margin-top:3px;">Via ${h.method}${h.notes?' &middot; '+h.notes:''}</div>`:''}
+          </div>`).join('')}
+        `:'<div style="font-size:12px;color:var(--muted);margin-bottom:10px;">No follow-up history yet.</div>'}
+        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+          <button class="btn btn-sm" onclick="openPastoralNoteModal('${m.id}','${m.first} ${m.last}','${(m.notes||'').replace(/'/g,'&#39;')}')">&#128221; ${m.notes?'Edit note':'Add note'}</button>
+          <button class="btn btn-sm" style="background:#DCFCE7;color:#166534;border-color:#86EFAC;font-weight:600;" onclick="resolvePastoralCase('${m.id}','${m.first} ${m.last}')">&#10003; Mark resolved</button>
+        </div>
+      </div>`;
+    }).join('');
+  }catch(e){document.getElementById('pastoral-loading').style.display='none';document.getElementById('pastoral-list').innerHTML='<div style="color:#991B1B;font-size:13px;padding:10px;">Could not load pastoral members.</div>';}
+}
+
+function openPastoralNoteModal(id,name,existingNote){
+  document.getElementById('pastoral-note-id').value=id;
+  document.getElementById('pastoral-note-sub').textContent=`Adding note for ${name}`;
+  document.getElementById('pastoral-note-text').value=existingNote||'';
+  document.getElementById('pastoral-note-modal').classList.add('open');
+}
+
+async function savePastoralNote(){
+  const id=document.getElementById('pastoral-note-id').value;
+  const note=document.getElementById('pastoral-note-text').value.trim();
+  showToast('Saving note...');
+  try{
+    await apiPost({action:'savePastoralNote',id,note});
+    await logActivity(`Pastor added note for member ID ${id}`);
+    closeModal('pastoral-note-modal');
+    loadPastoralMembers();
+    showToast('Note saved!');
+  }catch(e){showToast('Error saving note.');}
+}
+
+async function resolvePastoralCase(id,name){
+  if(!confirm(`Mark ${name}'s case as resolved? This will remove the pastoral flag.`))return;
+  showToast('Resolving...');
+  try{
+    await apiPost({action:'resolveCase',id});
+    await logActivity(`Pastor resolved pastoral case for ${name}`);
+    loadPastoralMembers();
+    showToast(`${name}'s case marked as resolved.`);
+  }catch(e){showToast('Error resolving case.');}
+}
+
+async function loadPastorAttendance(){
+  document.getElementById('pastor-att-loading').style.display='block';
+  document.getElementById('pastor-att-body').style.display='none';
+  try{
+    const[mRes,aRes]=await Promise.all([apiGet('getMembers'),apiGet('getAttendance')]);
+    members=mRes.members||[];attendance=aRes.records||[];
+    // Group by date
+    const byDate={};
+    attendance.forEach(r=>{
+      if(!byDate[r.date])byDate[r.date]={present:[],absent:[]};
+      const m=members.find(x=>String(x.id)===String(r.memberId));
+      if(!m)return;
+      const p=r.present===true||r.present==='TRUE';
+      if(p)byDate[r.date].present.push(m);
+      else byDate[r.date].absent.push(m);
+    });
+    const sundays=Object.keys(byDate).sort().reverse();
+    const avgPresent=sundays.length?Math.round(sundays.reduce((s,d)=>s+byDate[d].present.length,0)/sundays.length):0;
+    document.getElementById('pa-total').textContent=members.length;
+    document.getElementById('pa-sundays').textContent=sundays.length;
+    document.getElementById('pa-avg').textContent=avgPresent;
+    document.getElementById('pastor-sunday-list').innerHTML=sundays.map(date=>{
+      const d=byDate[date];
+      return`<div class="card" style="margin-bottom:10px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <div style="font-family:'Montserrat',sans-serif;font-weight:700;color:var(--navy);font-size:14px;">${date}</div>
+          <div style="display:flex;gap:8px;">
+            <span style="background:var(--green-light);color:var(--green);border-radius:12px;padding:2px 10px;font-size:12px;font-weight:600;">&#10003; ${d.present.length} present</span>
+            <span style="background:var(--red-light);color:var(--red);border-radius:12px;padding:2px 10px;font-size:12px;font-weight:600;">&#10007; ${d.absent.length} absent</span>
+          </div>
+        </div>
+        <div style="font-size:11px;color:var(--green);margin-bottom:4px;font-weight:600;">Present: ${d.present.map(m=>m.first+' '+m.last).join(', ')||'None'}</div>
+        <div style="font-size:11px;color:var(--red);">Absent: ${d.absent.map(m=>m.first+' '+m.last).join(', ')||'None'}</div>
+      </div>`;
+    }).join('')||'<div class="empty">No attendance recorded yet.</div>';
+    document.getElementById('pastor-att-loading').style.display='none';
+    document.getElementById('pastor-att-body').style.display='block';
+  }catch(e){document.getElementById('pastor-att-loading').innerHTML='<div style="color:#991B1B;font-size:13px;">Could not load attendance.</div>';}
+}
+
 // TABS
-function showTab(id,btn){document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));document.getElementById(id).classList.add('active');btn.classList.add('active');if(id==='followup')renderFollowup();if(id==='members'){loadMembers().then(()=>{document.getElementById('member-count').textContent=members.length;});}if(id==='settings')renderSettings();if(id==='activity')loadActivity();if(id==='stats')loadStats();}
+function showTab(id,btn){document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));document.getElementById(id).classList.add('active');btn.classList.add('active');if(id==='followup')renderFollowup();if(id==='members'){loadMembers().then(()=>{document.getElementById('member-count').textContent=members.length;});}if(id==='settings')renderSettings();if(id==='activity')loadActivity();if(id==='stats')loadStats();if(id==='pastoral')loadPastoralMembers();if(id==='pastor-attendance')loadPastorAttendance();}
 
 // INIT
 apiGet('getSettings').then(res=>{try{const n=res.settings&&res.settings.churchName?res.settings.churchName:CHURCH;if(n)document.getElementById('login-church-name')&&(document.getElementById('login-church-name').textContent=n);}catch(e){}}).catch(()=>{});
