@@ -105,10 +105,7 @@ input,select,textarea{width:100%;padding:9px 12px;border:1.5px solid var(--borde
 input:focus,select:focus,textarea:focus{border-color:var(--fire);}
 label{font-size:11px;color:var(--muted);display:block;margin-bottom:4px;font-weight:500;text-transform:uppercase;letter-spacing:0.04em;}
 
-/* SEARCH */
-.search-wrap{position:relative;margin-bottom:14px;}
-.search-wrap input{padding-left:36px;}
-.search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:15px;color:var(--muted);pointer-events:none;}
+
 
 /* COLLAPSIBLE */
 .collapsible-hdr{display:flex;align-items:center;justify-content:space-between;background:var(--navy);color:var(--white);border-radius:var(--radius);padding:14px 16px;cursor:pointer;margin-bottom:0;transition:background 0.15s;user-select:none;}
@@ -314,7 +311,7 @@ label{font-size:11px;color:var(--muted);display:block;margin-bottom:4px;font-wei
           </div>
         </div>
         <div class="collapsible-body" id="members-body">
-          <div class="search-wrap" style="margin-top:12px;"><span class="search-icon">&#128269;</span><input id="member-search" placeholder="Search by name, phone or email..." oninput="renderAllMembers()"/></div>
+
           <div id="members-loading" class="loading" style="display:none;"><div class="spinner"></div>Loading...</div>
           <div id="all-members"></div>
         </div>
@@ -708,17 +705,16 @@ async function loadMembers(){
   }catch(e){document.getElementById('members-loading').innerHTML='<div style="color:#991B1B;font-size:13px;padding:10px;">Could not load members.</div>';}
 }
 
+function formatPhone(raw){
+  if(!raw) return '';
+  const digits=raw.replace(/\D/g,'');
+  if(digits.length===10) return digits.slice(0,3)+'-'+digits.slice(3,6)+'-'+digits.slice(6);
+  if(digits.length===11&&digits[0]==='1') return digits.slice(1,4)+'-'+digits.slice(4,7)+'-'+digits.slice(7);
+  return raw;
+}
+
 function renderAllMembers(){
-  const q=(document.getElementById('member-search')||{}).value||'';
-  const query=q.toLowerCase().trim();
-  const filtered=!query?members:members.filter(m=>{
-    const first=(m.first||'').toLowerCase();
-    const last=(m.last||'').toLowerCase();
-    const full=(first+' '+last);
-    const phone=(m.phone||'').toLowerCase();
-    const email=(m.email||'').toLowerCase();
-    return first.includes(query)||last.includes(query)||full.includes(query)||phone.includes(query)||email.includes(query);
-  });
+  const filtered=members;
   document.getElementById('member-count').textContent=members.length;
   const pastoral=filtered.filter(m=>m.pastoralFlag&&m.pastoralFlag!=='false'&&m.pastoralFlag!==false);
   const regular=filtered.filter(m=>!m.pastoralFlag||m.pastoralFlag==='false'||m.pastoralFlag===false);
@@ -755,7 +751,7 @@ async function addMember(){
   if(exact){if(!confirm(`${fn} ${ln} already exists. Add anyway?`))return;}
   showToast('Adding member...');
   try{
-    const res=await apiPost({action:'addMember',member:{first:fn,last:ln,phone:document.getElementById('m-ph').value.trim(),email:document.getElementById('m-em').value.trim(),joinDate:document.getElementById('m-jd').value,baptismDate:document.getElementById('m-bd').value,notes:document.getElementById('m-notes').value.trim(),addedBy:currentUser.displayName||currentUser.username}});
+    const res=await apiPost({action:'addMember',member:{first:fn,last:ln,phone:formatPhone(document.getElementById('m-ph').value.trim()),email:document.getElementById('m-em').value.trim(),joinDate:document.getElementById('m-jd').value,baptismDate:document.getElementById('m-bd').value,notes:document.getElementById('m-notes').value.trim(),addedBy:currentUser.displayName||currentUser.username}});
     if(res.success){await logActivity(`Added new member: ${fn} ${ln}`);['m-fn','m-ln','m-ph','m-em','m-jd','m-bd','m-notes'].forEach(x=>document.getElementById(x).value='');document.getElementById('dup-warning').style.display='none';await loadMembers();showToast('Member added!');}
   }catch(e){showToast('Error adding member.');}
 }
@@ -779,7 +775,7 @@ function openEditModal(id){
 async function saveEditMember(){
   const id=document.getElementById('edit-id').value;
   const m=members.find(x=>String(x.id)===String(id));
-  const updated={id,first:document.getElementById('edit-fn').value.trim(),last:document.getElementById('edit-ln').value.trim(),phone:document.getElementById('edit-ph').value.trim(),email:document.getElementById('edit-em').value.trim(),joinDate:document.getElementById('edit-jd').value,baptismDate:document.getElementById('edit-bd').value,notes:document.getElementById('edit-notes').value.trim(),pastoralFlag:document.getElementById('edit-pastoral').checked,addedBy:m?m.addedBy:''};
+  const updated={id,first:document.getElementById('edit-fn').value.trim(),last:document.getElementById('edit-ln').value.trim(),phone:formatPhone(document.getElementById('edit-ph').value.trim()),email:document.getElementById('edit-em').value.trim(),joinDate:document.getElementById('edit-jd').value,baptismDate:document.getElementById('edit-bd').value,notes:document.getElementById('edit-notes').value.trim(),pastoralFlag:document.getElementById('edit-pastoral').checked,addedBy:m?m.addedBy:''};
   if(!updated.first||!updated.last){showToast('First and last name required.');return;}
   showToast('Saving...');
   try{
