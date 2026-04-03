@@ -319,6 +319,12 @@ label{font-size:11px;color:var(--muted);display:block;margin-bottom:4px;font-wei
         <div><label>Join date</label><input type="date" id="m-jd"/></div>
         <div><label>Baptism date</label><input type="date" id="m-bd"/></div>
         <div class="full"><label>Notes (care team only)</label><textarea id="m-notes" rows="2" placeholder="Any relevant notes..."></textarea></div>
+        <div class="full"><label>Type</label>
+          <select id="m-type">
+            <option value="Member">Member — attends church, on Roll Call</option>
+            <option value="EmailOnly">Email Only — receives emails, not on Roll Call</option>
+          </select>
+        </div>
         <div class="full"><button class="btn-fire" onclick="addMember()">Add Member to Google Sheet</button></div>
       </div>
 
@@ -503,6 +509,12 @@ label{font-size:11px;color:var(--muted);display:block;margin-bottom:4px;font-wei
         <input type="checkbox" id="edit-pastoral" style="width:auto;margin:0;"/>
         <label style="margin:0;text-transform:none;font-size:13px;letter-spacing:0;">&#128591; Flag for pastoral follow-up</label>
       </div>
+      <div class="full" style="margin-top:8px;"><label>Type</label>
+        <select id="edit-type">
+          <option value="Member">Member — attends church, on Roll Call</option>
+          <option value="EmailOnly">Email Only — receives emails, not on Roll Call</option>
+        </select>
+      </div>
     </div>
     <div class="modal-row">
       <button class="btn" onclick="closeModal('edit-modal-bg')">Cancel</button>
@@ -531,7 +543,7 @@ label{font-size:11px;color:var(--muted);display:block;margin-bottom:4px;font-wei
 <div class="toast" id="toast"></div>
 
 <script>
-const API='https://script.google.com/macros/s/AKfycbzB31koBTITDetilbeLRTtP5Pu1qGZjRx_swOlliqqmUc7aVjlqs5wYTg7JuEQ4pDixKQ/exec';
+const API='https://script.google.com/macros/s/AKfycbxTW72jvMFda1ZmbCS4vhteTUzSVUNsyH6ERcZl7SbHTGCiRd54EYVeklLGwrgaBawq/exec';
 const CHURCH='Catch The Fire Halifax';
 const DEFAULTS={alertWeeks:2,team:[],smsTemplate:'Hi {name}, we missed you at church this Sunday! We care about you and just wanted to check in. Please reach out if there is anything we can do for you. God bless! — {church}',emailTemplate:'Dear {name},\n\nWe noticed we haven\'t seen you at church recently and wanted to reach out to say we miss you and we are thinking of you.\n\nIf there is anything you need or if we can support you in any way, please don\'t hesitate to get in touch. Our doors are always open.\n\nWith love and prayers,\n{church}'};
 
@@ -637,10 +649,10 @@ async function unlockAttendance(){
 function renderSunday(){
   const pc=Object.values(todayPresent).filter(Boolean).length;
   document.getElementById('s-present').textContent=pc;
-  document.getElementById('s-absent').textContent=members.length-pc;
-  document.getElementById('s-total').textContent=members.length;
+  document.getElementById('s-absent').textContent=members.filter(m=>!m.type||m.type==='Member').length-pc;
+  document.getElementById('s-total').textContent=members.filter(m=>!m.type||m.type==='Member').length;
   const locked=attendanceLocked;
-  document.getElementById('roll-list').innerHTML=members.map(m=>{
+  document.getElementById('roll-list').innerHTML=members.filter(m=>!m.type||m.type==='Member').map(m=>{
     const hist=getHistory(m.id);
     const dots=[0,1,2,3].map(i=>{const rec=hist[i];if(!rec)return'<span class="dot dot-e"></span>';return`<span class="dot ${(rec.present===true||rec.present==='TRUE')?'dot-g':'dot-r'}"></span>`;}).join('');
     const pres=!!todayPresent[m.id];
@@ -678,7 +690,7 @@ function getOutcomeClass(o){if(!o)return'';if(o.includes('well')||o.includes('Re
 function renderFollowup(){
   const weeks=gs('alertWeeks');
   const teamOpts=(gs('team')||[]).map(t=>`<option value="${t}">${t}</option>`).join('');
-  const flagged=members.filter(m=>missedStreak(m.id)>=weeks);
+  const flagged=members.filter(m=>(!m.type||m.type==='Member')&&missedStreak(m.id)>=weeks);
   document.getElementById('followup-sub').textContent=`Members absent for ${weeks}+ week${weeks>1?'s':''} in a row`;
   if(!flagged.length){document.getElementById('followup-list').innerHTML='<div class="empty">&#10003; No members flagged right now.<br>Everyone has been attending!</div>';return;}
   document.getElementById('followup-list').innerHTML=flagged.map(m=>{
@@ -789,13 +801,19 @@ function formatPhone(raw){
 
 function renderAllMembers(){
   const filtered=members;
-  document.getElementById('member-count').textContent=members.length;
+  const memberCount=members.filter(m=>!m.type||m.type==='Member').length;
+  const emailCount=members.filter(m=>m.type==='EmailOnly').length;
+  document.getElementById('member-count').textContent=`${memberCount} members · ${emailCount} email only`;
   const pastoral=filtered.filter(m=>m.pastoralFlag&&m.pastoralFlag!=='false'&&m.pastoralFlag!==false);
   const regular=filtered.filter(m=>!m.pastoralFlag||m.pastoralFlag==='false'||m.pastoralFlag===false);
-  const renderM=arr=>arr.map(m=>`<div class="card ${m.pastoralFlag&&m.pastoralFlag!=='false'?'card-pastoral':''}"><div class="mrow">
-    <div class="avatar ${avClass(m.id)}">${initials(m)}</div>
+  const renderM=arr=>arr.map(m=>{
+    const isEmailOnly=m.type==='EmailOnly';
+    const typeBadge=isEmailOnly?'<span style="background:#DBEAFE;color:#1E40AF;border-radius:10px;padding:1px 8px;font-size:10px;font-weight:600;margin-left:4px;">Email Only</span>':'';
+    const pastoralBadge=m.pastoralFlag&&m.pastoralFlag!=='false'?'<span class="pastoral-flag">&#128591;</span>':'';
+    return`<div class="card ${m.pastoralFlag&&m.pastoralFlag!=='false'?'card-pastoral':''}"><div class="mrow">
+    <div class="avatar ${avClass(m.id)}" ${isEmailOnly?'style="background:#DBEAFE;color:#1E40AF;"':''}>${initials(m)}</div>
     <div class="flex1">
-      <div class="mname">${m.first} ${m.last} ${m.pastoralFlag&&m.pastoralFlag!=='false'?'<span class="pastoral-flag">&#128591;</span>':''}</div>
+      <div class="mname">${m.first} ${m.last} ${pastoralBadge}${typeBadge}</div>
       <div class="msub">${m.phone||'No phone'} &nbsp;&middot;&nbsp; ${m.email||'No email'}</div>
       ${m.addedBy?`<div style="font-size:10px;color:var(--muted);margin-top:1px;">Added by ${m.addedBy}${m.joinDate?' &nbsp;&middot;&nbsp; Joined '+m.joinDate:''}</div>`:''}
       ${m.notes?`<div style="font-size:11px;color:var(--amber);margin-top:3px;font-style:italic;">&#128203; ${m.notes}</div>`:''}
@@ -804,8 +822,9 @@ function renderAllMembers(){
       <button class="btn btn-sm" onclick="openEditModal('${m.id}')">Edit</button>
       <button class="btn btn-sm btn-danger" onclick="deleteMember('${m.id}','${m.first} ${m.last}')">Remove</button>
     </div>
-  </div></div>`).join('');
-  document.getElementById('all-members').innerHTML=(pastoral.length?`<div style="font-size:11px;font-weight:600;color:#7C3AED;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em;">&#128591; Pastoral Referrals</div>${renderM(pastoral)}<div style="font-size:11px;font-weight:600;color:var(--muted);margin:10px 0 6px;text-transform:uppercase;letter-spacing:0.05em;">All Members</div>`:'')+renderM(regular)||`<div class="empty">${query?'No members match your search.':'No members yet.'}</div>`;
+  </div></div>`;
+  }).join('');
+  document.getElementById('all-members').innerHTML=(pastoral.length?`<div style="font-size:11px;font-weight:600;color:#7C3AED;margin-bottom:6px;text-transform:uppercase;letter-spacing:0.05em;">&#128591; Pastoral Referrals</div>${renderM(pastoral)}<div style="font-size:11px;font-weight:600;color:var(--muted);margin:10px 0 6px;text-transform:uppercase;letter-spacing:0.05em;">All Members &amp; Contacts</div>`:'')+renderM(regular)||'<div class="empty">No members yet.</div>';
 }
 
 function checkDuplicate(){
@@ -825,8 +844,8 @@ async function addMember(){
   if(exact){if(!confirm(`${fn} ${ln} already exists. Add anyway?`))return;}
   showToast('Adding member...');
   try{
-    const res=await apiPost({action:'addMember',member:{first:fn,last:ln,phone:formatPhone(document.getElementById('m-ph').value.trim()),email:document.getElementById('m-em').value.trim(),joinDate:document.getElementById('m-jd').value,baptismDate:document.getElementById('m-bd').value,notes:document.getElementById('m-notes').value.trim(),addedBy:currentUser.displayName||currentUser.username}});
-    if(res.success){await logActivity(`Added new member: ${fn} ${ln}`);['m-fn','m-ln','m-ph','m-em','m-jd','m-bd','m-notes'].forEach(x=>document.getElementById(x).value='');document.getElementById('dup-warning').style.display='none';await loadMembers();showToast('Member added!');}
+    const res=await apiPost({action:'addMember',member:{first:fn,last:ln,phone:formatPhone(document.getElementById('m-ph').value.trim()),email:document.getElementById('m-em').value.trim(),joinDate:document.getElementById('m-jd').value,baptismDate:document.getElementById('m-bd').value,notes:document.getElementById('m-notes').value.trim(),addedBy:currentUser.displayName||currentUser.username,type:document.getElementById('m-type').value}});
+    if(res.success){await logActivity(`Added new member: ${fn} ${ln} (${document.getElementById('m-type').value})`);['m-fn','m-ln','m-ph','m-em','m-jd','m-bd','m-notes'].forEach(x=>document.getElementById(x).value='');document.getElementById('m-type').value='Member';document.getElementById('dup-warning').style.display='none';await loadMembers();showToast('Member added!');}
   }catch(e){showToast('Error adding member.');}
 }
 
@@ -843,13 +862,14 @@ function openEditModal(id){
   document.getElementById('edit-bd').value=m.baptismDate||'';
   document.getElementById('edit-notes').value=m.notes||'';
   document.getElementById('edit-pastoral').checked=m.pastoralFlag===true||m.pastoralFlag==='true';
+  document.getElementById('edit-type').value=m.type||'Member';
   document.getElementById('edit-modal-bg').classList.add('open');
 }
 
 async function saveEditMember(){
   const id=document.getElementById('edit-id').value;
   const m=members.find(x=>String(x.id)===String(id));
-  const updated={id,first:document.getElementById('edit-fn').value.trim(),last:document.getElementById('edit-ln').value.trim(),phone:formatPhone(document.getElementById('edit-ph').value.trim()),email:document.getElementById('edit-em').value.trim(),joinDate:document.getElementById('edit-jd').value,baptismDate:document.getElementById('edit-bd').value,notes:document.getElementById('edit-notes').value.trim(),pastoralFlag:document.getElementById('edit-pastoral').checked,addedBy:m?m.addedBy:''};
+  const updated={id,first:document.getElementById('edit-fn').value.trim(),last:document.getElementById('edit-ln').value.trim(),phone:formatPhone(document.getElementById('edit-ph').value.trim()),email:document.getElementById('edit-em').value.trim(),joinDate:document.getElementById('edit-jd').value,baptismDate:document.getElementById('edit-bd').value,notes:document.getElementById('edit-notes').value.trim(),pastoralFlag:document.getElementById('edit-pastoral').checked,type:document.getElementById('edit-type').value,addedBy:m?m.addedBy:''};
   if(!updated.first||!updated.last){showToast('First and last name required.');return;}
   showToast('Saving...');
   try{
@@ -876,6 +896,10 @@ async function loadStats(){
     document.getElementById('st-members').textContent=s.totalMembers||0;
     document.getElementById('st-avg').textContent=s.avgAttendance||0;
     document.getElementById('st-followups').textContent=s.totalFollowups||0;
+    // Show email-only count if available
+    const emailOnly=members.filter(m=>m.type==='EmailOnly').length;
+    const churchMembers=members.filter(m=>!m.type||m.type==='Member').length;
+    if(emailOnly>0){document.getElementById('st-members').textContent=churchMembers;document.getElementById('st-members').parentElement.querySelector('.stat-card-lbl').textContent=`Church Members (+ ${emailOnly} email only)`;}
     // Bar chart
     const data=s.sundayData||[];const maxP=Math.max(...data.map(d=>d.present),1);
     document.getElementById('att-chart').innerHTML=data.length?data.map(d=>{const h=Math.round((d.present/maxP)*90);const lbl=d.date.slice(5);return`<div class="bar-col"><div class="bar" style="height:${h}px;" title="${d.date}: ${d.present} present"></div><span class="bar-lbl">${lbl}</span></div>`;}).join(''):'<div style="font-size:12px;color:var(--muted);padding:20px;">No attendance data yet.</div>';
