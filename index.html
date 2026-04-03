@@ -692,15 +692,20 @@ function toggleAllMembers(){
   const body=document.getElementById('members-body');
   const arrow=document.getElementById('members-arrow');
   const isOpen=body.classList.contains('open');
-  if(!isOpen){body.classList.add('open');arrow.classList.add('open');loadMembers();}
+  if(!isOpen){body.classList.add('open');arrow.classList.add('open');renderAllMembers();}
   else{body.classList.remove('open');arrow.classList.remove('open');}
 }
 
 async function loadMembers(){
   document.getElementById('members-loading').style.display='block';
   document.getElementById('all-members').innerHTML='';
-  try{const res=await apiGet('getMembers');members=res.members||[];renderAllMembers();document.getElementById('members-loading').style.display='none';}
-  catch(e){document.getElementById('members-loading').innerHTML='<div style="color:#991B1B;font-size:13px;padding:10px;">Could not load members.</div>';}
+  try{
+    const res=await apiGet('getMembers');
+    members=res.members||[];
+    renderAllMembers();
+    document.getElementById('members-loading').style.display='none';
+    document.getElementById('member-count').textContent=members.length;
+  }catch(e){document.getElementById('members-loading').innerHTML='<div style="color:#991B1B;font-size:13px;padding:10px;">Could not load members.</div>';}
 }
 
 function renderAllMembers(){
@@ -841,7 +846,7 @@ function addTeamMember(){const v=document.getElementById('new-team').value.trim(
 function removeTeam(i){const team=gs('team')||[];team.splice(i,1);LS.team=team;apiPost({action:'saveSettings',settings:{team:JSON.stringify(team)}}).then(()=>showToast('Team updated!')).catch(()=>{});renderTeam();}
 
 // TABS
-function showTab(id,btn){document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));document.getElementById(id).classList.add('active');btn.classList.add('active');if(id==='followup')renderFollowup();if(id==='members'){loadMembers();document.getElementById('member-count').textContent=members.length;}if(id==='settings')renderSettings();if(id==='activity')loadActivity();if(id==='stats')loadStats();}
+function showTab(id,btn){document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));document.getElementById(id).classList.add('active');btn.classList.add('active');if(id==='followup')renderFollowup();if(id==='members'){loadMembers().then(()=>{document.getElementById('member-count').textContent=members.length;});}if(id==='settings')renderSettings();if(id==='activity')loadActivity();if(id==='stats')loadStats();}
 
 // INIT
 apiGet('getSettings').then(res=>{try{const n=res.settings&&res.settings.churchName?res.settings.churchName:CHURCH;if(n)document.getElementById('login-church-name')&&(document.getElementById('login-church-name').textContent=n);}catch(e){}}).catch(()=>{});
