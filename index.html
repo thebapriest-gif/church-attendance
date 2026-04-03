@@ -474,7 +474,7 @@ label{font-size:11px;color:var(--muted);display:block;margin-bottom:4px;font-wei
 <div class="toast" id="toast"></div>
 
 <script>
-const API='https://script.google.com/macros/s/AKfycbyMKyzz5u3-8ZDO27Bpc6YUwgd_Z2KbwFWOHNiZ4kvJ1S3sUsQF8_MP0JqQ_OfPNwVtWA/exec';
+const API='https://script.google.com/macros/s/AKfycbz5qE8Ap0iqRm_bjUzSNbDgCoETpLOGkP66NwoEmhvoT4dPbfOUJbgZZGhl5TtOcOvZOg/exec';
 const CHURCH='Catch The Fire Halifax';
 const DEFAULTS={alertWeeks:2,team:[],smsTemplate:'Hi {name}, we missed you at church this Sunday! We care about you and just wanted to check in. Please reach out if there is anything we can do for you. God bless! — {church}',emailTemplate:'Dear {name},\n\nWe noticed we haven\'t seen you at church recently and wanted to reach out to say we miss you and we are thinking of you.\n\nIf there is anything you need or if we can support you in any way, please don\'t hesitate to get in touch. Our doors are always open.\n\nWith love and prayers,\n{church}'};
 
@@ -707,12 +707,12 @@ function renderAllMembers(){
   const q=(document.getElementById('member-search')||{}).value||'';
   const query=q.toLowerCase().trim();
   const filtered=!query?members:members.filter(m=>{
-    const fullName=((m.first||'')+' '+(m.last||'')).toLowerCase();
-    const firstName=(m.first||'').toLowerCase();
-    const lastName=(m.last||'').toLowerCase();
+    const first=(m.first||'').toLowerCase();
+    const last=(m.last||'').toLowerCase();
+    const full=(first+' '+last);
     const phone=(m.phone||'').toLowerCase();
     const email=(m.email||'').toLowerCase();
-    return fullName.includes(query)||firstName.includes(query)||lastName.includes(query)||phone.includes(query)||email.includes(query);
+    return first.includes(query)||last.includes(query)||full.includes(query)||phone.includes(query)||email.includes(query);
   });
   document.getElementById('member-count').textContent=members.length;
   const pastoral=filtered.filter(m=>m.pastoralFlag&&m.pastoralFlag!=='false'&&m.pastoralFlag!==false);
